@@ -1,15 +1,10 @@
 import express from "express";
-import { upload,chat } from "./controller";
-import multer from "multer";
+import { upload, chat } from "./controller";
+import { fileUpload } from "./config";
 
 const router = express.Router();
 
-//multer config
-const fileConfig=multer({
-    dest:"uploads/"
-})
-
-router.post("/upload", fileConfig.single("file"), upload);
+router.post("/upload", fileUpload, upload);
 router.post("/chat", chat);
 
 export default router;

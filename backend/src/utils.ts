@@ -1,10 +1,15 @@
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { QdrantVectorStore } from "@langchain/qdrant";
-import { TaskType } from "@google/generative-ai";
-import { GoogleGenerativeAI } from "@google/generative-ai"; // Standard SDK
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
+import {
+  QDRANT_CONFIG,
+  SYSTEM_PROMPT,
+  GENERATIVE_CONFIG,
+  createUploadEmbeddingModel,
+  createRetrievalEmbeddingModel,
+} from "./config";
 
 dotenv.config();
 
@@ -14,24 +19,19 @@ export const indexPDF = async (filepath: string) => {
     const docs = await loader.load();
 
     const splitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 800,
-      chunkOverlap: 100,
+      chunkSize: 1000,
+      chunkOverlap: 200,
     });
     const texts = await splitter.splitDocuments(docs);
 
-    const embedding_model = new GoogleGenerativeAIEmbeddings({
-      apiKey: process.env.GEMINI_API_KEY,
-      modelName: "gemini-embedding-2",
-      taskType: TaskType.RETRIEVAL_DOCUMENT,
-      title: "rag project",
-    });
+    const embedding_model = createUploadEmbeddingModel();
 
     const vectorStore = await QdrantVectorStore.fromDocuments(
       texts,
       embedding_model,
       {
-        url: "http://localhost:6333",
-        collectionName: "pdf_rag",
+        url: QDRANT_CONFIG.URL,
+        collectionName: QDRANT_CONFIG.COLLECTION_NAME,
       },
     );
 
@@ -43,18 +43,13 @@ export const indexPDF = async (filepath: string) => {
 
 export const retrival = async (query: string) => {
   try {
-    const embedding_model = new GoogleGenerativeAIEmbeddings({
-      apiKey: process.env.GEMINI_API_KEY,
-      modelName: "gemini-embedding-2-preview",
-      taskType: TaskType.RETRIEVAL_DOCUMENT,
-      title: "rag project",
-    });
+    const embedding_model = createRetrievalEmbeddingModel();
 
     const vectorStore = await QdrantVectorStore.fromExistingCollection(
       embedding_model,
       {
-        url: "http://localhost:6333",
-        collectionName: "pdf_rag",
+        url: QDRANT_CONFIG.URL,
+        collectionName: QDRANT_CONFIG.COLLECTION_NAME,
       },
     );
 
@@ -67,44 +62,45 @@ export const retrival = async (query: string) => {
       )
       .join("\n\n\n");
 
-    const SYSTEM_PROMPT = `You are a helpful AI assistant who answers user queries based on the available context retrieved from a PDF file along with page content and page number.
-
-You should only answer the user based on the following context and navigate the user to open the right page number to know more.
-
-Context:
-${context}`;
-
-    const PRIMARY_MODEL = "gemini-2.5-flash";
-    const FALLBACK_MODEL = "gemini-flash-latest";
-
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string);
     let model;
 
     try {
-      model = genAI.getGenerativeModel({ model: PRIMARY_MODEL });
+      model = genAI.getGenerativeModel({
+        model: GENERATIVE_CONFIG.PRIMARY_MODEL,
+        systemInstruction: SYSTEM_PROMPT + context,
+      });
       const result = await model.generateContent({
         contents: [
           {
             role: "user",
-            parts: [{ text: SYSTEM_PROMPT + "\n\nQuery: " + query }],
+            parts: [{ text: query }],
           },
         ],
       });
+
       const text = result.response.text();
-      return text;
+      const parsed = JSON.parse(text);
+      return parsed;
     } catch (error) {
-      model = genAI.getGenerativeModel({ model: FALLBACK_MODEL });
+      model = genAI.getGenerativeModel({
+        model: GENERATIVE_CONFIG.FALLBACK_MODEL,
+        systemInstruction: SYSTEM_PROMPT + context,
+      });
       const result = await model.generateContent({
         contents: [
           {
             role: "user",
-            parts: [{ text: SYSTEM_PROMPT + "\n\nQuery: " + query }],
+            parts: [{ text: query }],
           },
         ],
       });
       const text = result.response.text();
-      if (!text) throw new Error("No text generated from fallback model");
-      return text;
+
+      const parsed = JSON.parse(text);
+
+      if (!parsed) throw new Error("No text generated from fallback model");
+      return parsed;
     }
   } catch (e: any) {
     throw e;
