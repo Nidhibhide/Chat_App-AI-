@@ -15,16 +15,17 @@ export default function StudyAssistant() {
     setMessages((prev) => [...prev, { type: "user", text: currentQuestion }]);
 
     try {
-      const res = await axios.post("http://localhost:8080/api/chat", {
+      const res = await axios.post("http://localhost:8080/api/v1/chat", {
         message: currentQuestion,
       });
 
       const aiResponse = res.data.reply;
+      console.log(aiResponse);
 
-      // ✅ DON'T SHOW if answer not found
-      if (aiResponse.answer === "Answer not found in document") {
-        return;
-      }
+      // // ✅ DON'T SHOW if answer not found
+      // if (aiResponse.answer === "Answer not found in document") {
+      //   return;
+      // }
 
       setMessages((prev) => [
         ...prev,
@@ -45,7 +46,6 @@ export default function StudyAssistant() {
       ]);
     }
   };
-  console.log(messages);
   const uploadPDF = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -55,7 +55,7 @@ export default function StudyAssistant() {
       formData.append("file", file);
 
       const res = await axios.post(
-        "http://localhost:8080/api/upload",
+        "http://localhost:8080/api/v1/upload",
         formData,
       );
 

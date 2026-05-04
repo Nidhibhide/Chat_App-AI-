@@ -2,7 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import http from "http";
-import router from "./route";
+import routerV1 from "./v1/route";
+import routerV2 from "./v2/route";
 dotenv.config();
 
 const app = express();
@@ -24,7 +25,8 @@ app.use((req, res, next) => {
   console.log(`API Hit → Method: ${req.method}, URL: ${req.originalUrl}`);
   next();
 });
-app.use("/api", router); // pass router object directly
+app.use("/api/v1",routerV1); // pass router object directly
+app.use("/api/v2",routerV2);
 /* ---------------- Server ---------------- */
 const PORT = process.env.PORT || 8080;
 

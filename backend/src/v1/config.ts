@@ -3,7 +3,6 @@ import { TaskType } from "@google/generative-ai";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 
 // Multer (File Upload) Configuration
-
 const uploader = multer({
   dest: "uploads/",
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
@@ -12,14 +11,12 @@ const uploader = multer({
 export const fileUpload = uploader.single("file");
 
 // Qdrant Vector Store Configuration
-
 export const QDRANT_CONFIG = {
   URL: "http://localhost:6333",
   COLLECTION_NAME: "pdf_rag",
 } as const;
 
 // Embedding Model Configuration
-
 export const EMBEDDING_CONFIG = {
   UPLOAD_MODEL_NAME: "gemini-embedding-2",
   RETRIEVAL_MODEL_NAME: "gemini-embedding-2-preview",
@@ -44,14 +41,12 @@ export const createRetrievalEmbeddingModel = () =>
   });
 
 // Generative Model Configuration
-
 export const GENERATIVE_CONFIG = {
   PRIMARY_MODEL: "gemini-2.5-flash",
   FALLBACK_MODEL: "gemini-flash-latest",
 } as const;
 
 // System Prompt (RAG)
-
 export const SYSTEM_PROMPT = `
 You are an expert programming AI assistant.
 

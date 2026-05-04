@@ -1,8 +1,10 @@
 import Chat from "./Chat";
+import Chat2 from "./Chat2"
 function App() {
   return (
     <>
-      <Chat />
+      {/* <Chat /> */}
+      <Chat2/>
     </>
   );
 }
